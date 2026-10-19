@@ -165,7 +165,7 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
     }
   }
 
-  const addItem = (p: Product, size: 'S' | 'M' | 'L', price: number, tops: ToppingPick[]) => {
+  const addItem = (p: Product, size: 'S' | 'M' | 'L', price: number, tops: ToppingPick[], note?: string) => {
     setDraft((d) => {
       const key = (i: Draft) => `${i.product.id}|${i.size}|${i.toppings.map((x) => x.name).sort().join(',')}`
       const existing = d.find(
@@ -173,7 +173,7 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
       )
       if (existing)
         return d.map((i) => (i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i))
-      return [...d, { id: `d${nextId++}`, product: p, size, sizePrice: price, quantity: 1, toppings: tops }]
+      return [...d, { id: `d${nextId++}`, product: p, size, sizePrice: price, quantity: 1, note: note || undefined, toppings: tops }]
     })
   }
 
@@ -355,6 +355,13 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
           <Trash2 size={13} /> {t('clearOrder')}
         </button>
       )}
+      <button
+        onClick={() => setCartOpen(false)}
+        className="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink lg:hidden"
+        title={t('closeReceipt')}
+      >
+        <X size={17} />
+      </button>
     </div>
   )
 
@@ -406,6 +413,17 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
                     </button>
                   </div>
                   <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setItemNoteFor(itemNoteFor === i.id ? null : i.id)}
+                      className={`rounded-lg p-1.5 transition-colors ${
+                        i.note || itemNoteFor === i.id
+                          ? 'bg-amber-50 text-warn'
+                          : 'text-stone-300 hover:bg-brand-50 hover:text-brand-700'
+                      }`}
+                      title={t('note')}
+                    >
+                      <StickyNote size={14} />
+                    </button>
                     <button
                       onClick={() => {
                         const reason = window.prompt(t('cancelReason'))
@@ -879,9 +897,21 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
               </>
             )}
 
+            <label className="mb-4 block">
+              <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-stone-600">
+                <StickyNote size={13} /> {t('note')}
+              </span>
+              <input
+                value={customize.note}
+                onChange={(e) => setCustomize((c) => (c ? { ...c, note: e.target.value } : c))}
+                placeholder={t('notePlaceholder')}
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
+              />
+            </label>
+
             <button
               onClick={() => {
-                addItem(customize.product, customize.size, sizePrice(customize.product, customize.size), customize.toppings)
+                addItem(customize.product, customize.size, sizePrice(customize.product, customize.size), customize.toppings, customize.note)
                 setCustomize(null)
               }}
               className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-800 py-3 text-sm font-semibold text-amber-50 transition-all hover:bg-brand-700 active:scale-[0.99]"

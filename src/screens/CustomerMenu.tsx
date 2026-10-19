@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Coffee, CupSoda, Plus, Minus, Check, X, Loader2, CheckCircle2, Armchair } from 'lucide-react'
+import { Coffee, CupSoda, Plus, Minus, Check, X, ChevronUp, ChevronDown, Loader2, CheckCircle2, Armchair } from 'lucide-react'
 import { useI18n, formatMoney } from '../i18n'
 import { fetchPublicMenu, submitCustomerOrder } from '../lib/api'
 import type { Category, Product, ProductSize, Topping } from '../lib/api'
@@ -10,6 +10,7 @@ interface Line {
   size: 'S' | 'M' | 'L'
   sizePrice: number
   quantity: number
+  note?: string
   toppings: { name: string; price: number }[]
 }
 
@@ -17,6 +18,7 @@ interface Pick {
   product: Product
   size: 'S' | 'M' | 'L'
   toppings: { name: string; price: number }[]
+  note: string
 }
 
 let nextId = 1
@@ -34,6 +36,7 @@ export default function CustomerMenu() {
   const [pick, setPick] = useState<Pick | null>(null)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
 
   const tableName = useMemo(() => {
     const p = new URLSearchParams(window.location.search)
@@ -69,13 +72,15 @@ export default function CustomerMenu() {
   const total = lines.reduce((s, l) => s + lineTotal(l), 0)
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0)
 
-  const addLine = (p: Product, size: 'S' | 'M' | 'L', tops: { name: string; price: number }[]) => {
+  const addLine = (p: Product, size: 'S' | 'M' | 'L', tops: { name: string; price: number }[], note: string) => {
     const price = sizePrice(p, size)
     setLines((ls) => {
       const key = (l: Line) => `${l.product.id}|${l.size}|${l.toppings.map((x) => x.name).sort().join(',')}`
-      const existing = ls.find((l) => key(l) === `${p.id}|${size}|${tops.map((x) => x.name).sort().join(',')}`)
-      if (existing) return ls.map((l) => (l.id === existing.id ? { ...l, quantity: l.quantity + 1 } : l))
-      return [...ls, { id: `c${nextId++}`, product: p, size, sizePrice: price, quantity: 1, toppings: tops }]
+      const existing = ls.find(
+        (l) => key(l) === `${p.id}|${size}|${tops.map((x) => x.name).sort().join(',')}` && !l.note,
+      )
+      if (existing && !note) return ls.map((l) => (l.id === existing.id ? { ...l, quantity: l.quantity + 1 } : l))
+      return [...ls, { id: `c${nextId++}`, product: p, size, sizePrice: price, quantity: 1, note: note || undefined, toppings: tops }]
     })
     setPick(null)
   }
@@ -95,11 +100,12 @@ export default function CustomerMenu() {
           size_price: l.sizePrice,
           unit_price: l.sizePrice + l.toppings.reduce((s, tp) => s + tp.price, 0),
           quantity: l.quantity,
-          note: null,
+          note: l.note ?? null,
           toppings: l.toppings,
         })),
       })
       setLines([])
+      setCartOpen(false)
       setSent(true)
       setTimeout(() => setSent(false), 6000)
     } catch {
@@ -174,7 +180,7 @@ export default function CustomerMenu() {
             {visible.map((p) => (
               <button
                 key={p.id}
-                onClick={() => setPick({ product: p, size: 'M', toppings: [] })}
+                onClick={() => setPick({ product: p, size: 'M', toppings: [], note: '' })}
                 className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200/70 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
               >
                 <div className="flex h-20 items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100/60">
@@ -193,14 +199,50 @@ export default function CustomerMenu() {
       {/* sticky cart bar */}
       {lines.length > 0 && (
         <div className="sticky bottom-0 border-t border-stone-200/70 bg-white/95 px-4 py-3 backdrop-blur">
-          <button
-            onClick={send}
-            disabled={sending || !tableName}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-800 py-3.5 text-sm font-semibold text-amber-50 shadow-lg transition-all hover:bg-brand-700 active:scale-[0.99] disabled:opacity-60"
-          >
-            {sending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} strokeWidth={2.5} />}
-            {vi(`Gửi đơn · ${formatMoney(total, lang)}`, `Send order · ${formatMoney(total, lang)}`)}
-          </button>
+          {cartOpen && (
+            <ul className="mb-3 flex max-h-56 flex-col gap-1.5 overflow-y-auto">
+              {lines.map((l) => (
+                <li key={l.id} className="rounded-xl bg-stone-50 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-[12px] font-semibold text-ink">
+                      {l.product.name} · {l.size} ×{l.quantity}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <p className="text-[12px] font-bold tabular-nums text-ink">{formatMoney(lineTotal(l), lang)}</p>
+                      <button
+                        onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))}
+                        className="rounded-md p-1 text-stone-300 transition-colors hover:text-danger"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  </div>
+                  {(l.note || l.toppings.length > 0) && (
+                    <p className="mt-0.5 truncate text-[11px] italic text-warn">
+                      {l.toppings.length > 0 && `${l.toppings.map((tp) => tp.name).join(', ')} · `}
+                      {l.note}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCartOpen(!cartOpen)}
+              className="flex shrink-0 items-center justify-center rounded-xl border border-stone-200 px-3.5 text-sm font-semibold text-stone-600 transition-colors hover:bg-stone-50"
+            >
+              {cartOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            </button>
+            <button
+              onClick={send}
+              disabled={sending || !tableName}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-800 py-3.5 text-sm font-semibold text-amber-50 shadow-lg transition-all hover:bg-brand-700 active:scale-[0.99] disabled:opacity-60"
+            >
+              {sending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} strokeWidth={2.5} />}
+              {vi(`Gửi đơn · ${formatMoney(total, lang)}`, `Send order · ${formatMoney(total, lang)}`)}
+            </button>
+          </div>
         </div>
       )}
 
@@ -268,8 +310,20 @@ export default function CustomerMenu() {
               </>
             )}
 
+            <label className="mb-4 block">
+              <span className="mb-1.5 block text-[13px] font-semibold text-stone-600">
+                {vi('Ghi chú cho món này', 'Note for this item')}
+              </span>
+              <input
+                value={pick.note}
+                onChange={(e) => setPick((pk) => (pk ? { ...pk, note: e.target.value } : pk))}
+                placeholder={vi('VD: ít đá, thêm sữa...', 'e.g. less ice, extra milk...')}
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-400 focus:bg-white"
+              />
+            </label>
+
             <button
-              onClick={() => addLine(pick.product, pick.size, pick.toppings)}
+              onClick={() => addLine(pick.product, pick.size, pick.toppings, pick.note)}
               className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-800 py-3 text-sm font-semibold text-amber-50 transition-all hover:bg-brand-700 active:scale-[0.99]"
             >
               <Plus size={15} strokeWidth={2.5} /> {vi('Thêm vào đơn', 'Add to order')} ·{' '}
