@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import LoginScreen from './screens/LoginScreen'
 import PosScreen, { type ReceiptData } from './screens/PosScreen'
+import OrdersScreen from './screens/OrdersScreen'
 import KitchenScreen from './screens/KitchenScreen'
 import ReportsScreen from './screens/ReportsScreen'
 import MenuScreen from './screens/MenuScreen'
@@ -20,7 +21,7 @@ import { signOut, type Role, type StaffProfile } from './lib/auth'
 import { fetchAppModules } from './lib/api'
 import type { AppModuleRow } from './lib/modules'
 
-type Screen = 'pos' | 'kitchen' | 'reports' | 'menu' | 'settings' | 'inventory' | 'tables' | 'shift' | 'staff'
+type Screen = 'pos' | 'kitchen' | 'reports' | 'menu' | 'settings' | 'inventory' | 'tables' | 'shift' | 'staff' | 'orders'
 
 const ROLE_HOME: Record<Role, Screen> = { owner: 'reports', manager: 'reports', cashier: 'pos', barista: 'kitchen' }
 
@@ -63,6 +64,7 @@ function Shell({ profile }: { profile: StaffProfile }) {
   const nav = (
     [
       { id: 'pos', labelKey: 'navPos', icon: LayoutGrid },
+      { id: 'orders', labelKey: 'navOrders', icon: ClipboardList },
       { id: 'kitchen', labelKey: 'navKitchen', icon: ChefHat },
       { id: 'reports', labelKey: 'navReports', icon: ChartLine },
       { id: 'shift', labelKey: 'navShift', icon: Clock },
@@ -75,10 +77,10 @@ function Shell({ profile }: { profile: StaffProfile }) {
           ]
         : []),
       { id: 'settings', labelKey: 'navSettings', icon: Settings },
-    ] as { id: Screen; labelKey: 'navPos' | 'navKitchen' | 'navReports' | 'navSettings' | 'navMenu' | 'navInventory' | 'navStaff' | 'navShift' | 'tables'; icon: typeof Coffee }[]
+    ] as { id: Screen; labelKey: 'navPos' | 'navKitchen' | 'navReports' | 'navSettings' | 'navMenu' | 'navInventory' | 'navStaff' | 'navShift' | 'navOrders' | 'tables'; icon: typeof Coffee }[]
   ).filter((n) => {
     if (disabledModules.has(n.id)) return false
-    if (profile.role === 'barista' && (n.id === 'pos' || n.id === 'reports' || n.id === 'menu' || n.id === 'inventory' || n.id === 'tables' || n.id === 'staff')) return false
+    if (profile.role === 'barista' && (n.id === 'pos' || n.id === 'orders' || n.id === 'reports' || n.id === 'menu' || n.id === 'inventory' || n.id === 'tables' || n.id === 'staff')) return false
     if (profile.role === 'cashier' && (n.id === 'menu' || n.id === 'inventory' || n.id === 'tables' || n.id === 'staff')) return false
     return true
   })
@@ -235,6 +237,9 @@ function Shell({ profile }: { profile: StaffProfile }) {
       <main className="min-w-0 flex-1 overflow-hidden pb-16 md:pb-0">
         {screen === 'pos' && (
           <PosScreen cashierName={profile.name} onPrintReceipt={setReceipt} />
+        )}
+        {screen === 'orders' && (
+          <OrdersScreen cashierName={profile.name} onPrintReceipt={setReceipt} />
         )}
         {screen === 'kitchen' && <KitchenScreen role={profile.role} />}
         {screen === 'reports' && <ReportsScreen />}

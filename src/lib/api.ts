@@ -88,7 +88,8 @@ export interface OrderItemRow {
   quantity: number
   note: string | null
   toppings: { name: string; price: number }[]
-  status: 'pending' | 'brewing' | 'ready' | 'cancelled'
+  status: 'pending' | 'brewing' | 'ready' | 'cancelled' | 'cancel_requested'
+  cancel_reason?: string | null
   created_at: string
 }
 
@@ -466,6 +467,16 @@ export async function fetchTodayCompletedOrders() {
     .eq('status', 'completed')
     .gte('completed_at', start.toISOString())
     .order('completed_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as (Order & { order_items: OrderItemRow[] })[]
+}
+
+export async function fetchOrdersSince(iso: string) {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .gte('created_at', iso)
+    .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as (Order & { order_items: OrderItemRow[] })[]
 }

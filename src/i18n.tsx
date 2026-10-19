@@ -242,6 +242,24 @@ const dict = {
   staffPerformance: { vi: 'Doanh thu theo nhân viên', en: 'Revenue by staff' },
   unknownStaff: { vi: 'Không rõ', en: 'Unknown' },
 
+  // Orders management
+  navOrders: { vi: 'Đơn hàng', en: 'Orders' },
+  ordersManageHint: { vi: 'Tất cả đơn hàng theo khoảng thời gian', en: 'All orders by time range' },
+  ordersRangeToday: { vi: 'Hôm nay', en: 'Today' },
+  ordersRange7: { vi: '7 ngày', en: '7 days' },
+  ordersRange30: { vi: '30 ngày', en: '30 ngày' },
+  orderStatusOpen: { vi: 'Đang mở', en: 'Open' },
+  orderStatusCompleted: { vi: 'Đã thu', en: 'Paid' },
+  orderStatusCancelled: { vi: 'Đã hủy', en: 'Cancelled' },
+  ordersSummaryRevenue: { vi: 'Đã thu tiền', en: 'Collected' },
+  ordersSummaryPending: { vi: 'Chưa thu', en: 'Unpaid' },
+  createdAtCol: { vi: 'Tạo lúc', en: 'Created at' },
+  completedAtCol: { vi: 'Thu tiền lúc', en: 'Paid at' },
+  soldBy: { vi: 'Người bán', en: 'Sold by' },
+  payNow: { vi: 'Thu tiền đơn này', en: 'Collect payment' },
+  noOrdersInList: { vi: 'Không có đơn hàng nào trong khoảng này', en: 'No orders in this range' },
+  searchOrdersPlaceholder: { vi: 'Tìm theo bàn hoặc số HĐ...', en: 'Search by table or receipt no...' },
+
   // Discount
   discount: { vi: 'Giảm giá', en: 'Discount' },
   discountNone: { vi: 'Không', en: 'None' },
