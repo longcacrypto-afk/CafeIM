@@ -137,6 +137,12 @@ export interface CafeSettings {
   hotline: string
   receipt_footer: string
   telegram_chat_ids: string[]
+  receipt_width?: string
+  receipt_show_address?: boolean
+  receipt_show_hotline?: boolean
+  receipt_show_qr?: boolean
+  receipt_qr_data?: string | null
+  receipt_bank_info?: string | null
 }
 
 // ---------- shifts ----------

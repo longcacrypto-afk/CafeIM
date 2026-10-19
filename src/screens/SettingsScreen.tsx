@@ -46,6 +46,12 @@ export default function SettingsScreen({ isAdmin = false }: { isAdmin?: boolean 
         address: form.address.trim(),
         hotline: form.hotline.trim(),
         receipt_footer: form.receipt_footer.trim(),
+        receipt_width: form.receipt_width ?? '80',
+        receipt_show_address: form.receipt_show_address ?? true,
+        receipt_show_hotline: form.receipt_show_hotline ?? true,
+        receipt_show_qr: form.receipt_show_qr ?? false,
+        receipt_qr_data: form.receipt_qr_data?.trim() || null,
+        receipt_bank_info: form.receipt_bank_info?.trim() || null,
       })
       setForm((f) => (f ? { ...f, ...updated } : f))
       setSaved(true)
@@ -142,6 +148,75 @@ export default function SettingsScreen({ isAdmin = false }: { isAdmin?: boolean 
           />
           <span className="mt-1 block text-[11px] text-stone-400">{t('receiptFooterHint')}</span>
         </label>
+
+        <div className="mb-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+          <h3 className="text-[14px] font-bold text-ink">{t('receiptCustomize')}</h3>
+          <p className="mt-0.5 text-[11px] text-stone-400">{t('receiptSavedHint')}</p>
+
+          <label className="mt-3.5 block">
+            <span className="mb-1.5 block text-[13px] font-medium text-stone-600">{t('receiptWidth')}</span>
+            <select
+              value={form?.receipt_width ?? '80'}
+              onChange={(e) => setForm((f) => (f ? { ...f, receipt_width: e.target.value } : f))}
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-[13px] outline-none focus:border-brand-400"
+            >
+              <option value="58">{t('receiptWidth58')}</option>
+              <option value="80">{t('receiptWidth80')}</option>
+            </select>
+          </label>
+
+          <div className="mt-3.5 flex flex-col gap-2">
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 px-3.5 py-2.5">
+              <span className="text-[13px] text-stone-600">{t('receiptShowAddress')}</span>
+              <input
+                type="checkbox"
+                checked={form?.receipt_show_address ?? true}
+                onChange={(e) => setForm((f) => (f ? { ...f, receipt_show_address: e.target.checked } : f))}
+                className="h-4 w-4 accent-brand-800"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 px-3.5 py-2.5">
+              <span className="text-[13px] text-stone-600">{t('receiptShowHotline')}</span>
+              <input
+                type="checkbox"
+                checked={form?.receipt_show_hotline ?? true}
+                onChange={(e) => setForm((f) => (f ? { ...f, receipt_show_hotline: e.target.checked } : f))}
+                className="h-4 w-4 accent-brand-800"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 px-3.5 py-2.5">
+              <span className="text-[13px] text-stone-600">{t('receiptShowQr')}</span>
+              <input
+                type="checkbox"
+                checked={form?.receipt_show_qr ?? false}
+                onChange={(e) => setForm((f) => (f ? { ...f, receipt_show_qr: e.target.checked } : f))}
+                className="h-4 w-4 accent-brand-800"
+              />
+            </label>
+          </div>
+
+          {form?.receipt_show_qr && (
+            <label className="mt-3.5 block">
+              <span className="mb-1.5 block text-[13px] font-medium text-stone-600">{t('receiptQrData')}</span>
+              <input
+                value={form?.receipt_qr_data ?? ''}
+                onChange={(e) => setForm((f) => (f ? { ...f, receipt_qr_data: e.target.value } : f))}
+                placeholder={t('receiptQrDataPlaceholder')}
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:bg-white"
+              />
+            </label>
+          )}
+
+          <label className="mt-3.5 block">
+            <span className="mb-1.5 block text-[13px] font-medium text-stone-600">{t('receiptBankInfo')}</span>
+            <input
+              value={form?.receipt_bank_info ?? ''}
+              onChange={(e) => setForm((f) => (f ? { ...f, receipt_bank_info: e.target.value } : f))}
+              placeholder={t('receiptBankInfoPlaceholder')}
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:bg-white"
+            />
+          </label>
+        </div>
 
         <button
           onClick={save}

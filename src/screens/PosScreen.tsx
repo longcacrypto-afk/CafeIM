@@ -38,13 +38,15 @@ interface CustomizeState {
 export interface ReceiptData {
   id: string
   tableName: string
-  items: { name: string; size: string; qty: number; price: number; toppings: ToppingPick[] }[]
+  items: { name: string; size: string; qty: number; price: number; toppings: ToppingPick[]; note?: string | null }[]
   subtotal: number
   discountAmount: number
   discountLabel: string | null
   total: number
   paymentMethod: string | null
   cashier: string
+  customerPaid?: number | null
+  changeDue?: number | null
 }
 
 let nextId = 1
@@ -89,6 +91,8 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null)
   const [discountType, setDiscountType] = useState<DiscountType>('none')
   const [discountInput, setDiscountInput] = useState('')
+  const [paidInput, setPaidInput] = useState('')
+  const [changeShown, setChangeShown] = useState<number | null>(null)
 
   const refreshOrderLists = async () => {
     try {
@@ -193,6 +197,8 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
     discountType === 'percent' ? Math.round((total * Math.min(discountValueNum, 100)) / 100) :
     0
   const finalTotal = Math.max(0, total - discountAmount)
+  const paidNum = Number(paidInput.replace(/\D/g, '')) || 0
+  const changeDue = paidNum > 0 ? paidNum - finalTotal : null
   const discountLabel =
     discountType === 'amount' ? `${t('discountAmount')}: ${formatMoney(discountAmount, lang)}` :
     discountType === 'percent' ? `${t('discountPercent')}: ${discountValueNum}% (-${formatMoney(discountAmount, lang)})` :
@@ -250,6 +256,7 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
             items: (paid as unknown as { order_items: OrderItemRow[] }).order_items?.map((i) => ({
               name: i.product_name, size: i.size, qty: i.quantity, price: i.unit_price,
               toppings: (i.toppings ?? []) as ToppingPick[],
+              note: i.note,
             })) ?? [],
             subtotal: total,
             discountAmount,
@@ -257,6 +264,8 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
             total: paid.total,
             paymentMethod,
             cashier: cashierName,
+            customerPaid: paymentMethod === 'cash' && paidNum > 0 ? paidNum : null,
+            changeDue: paymentMethod === 'cash' && paidNum > 0 ? paidNum - finalTotal : null,
           })
         } else {
           onPrintReceipt({
@@ -266,6 +275,7 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
               name: i.product.name, size: i.size, qty: i.quantity,
               price: i.sizePrice + i.toppings.reduce((s, tp) => s + tp.price, 0),
               toppings: i.toppings,
+              note: i.note ?? null,
             })),
             subtotal: total,
             discountAmount,
@@ -273,6 +283,8 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
             total: finalTotal,
             paymentMethod,
             cashier: cashierName,
+            customerPaid: paymentMethod === 'cash' && paidNum > 0 ? paidNum : null,
+            changeDue: paymentMethod === 'cash' && paidNum > 0 ? paidNum - finalTotal : null,
           })
         }
       }
@@ -281,6 +293,8 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
       setActiveOrderId(null)
       setDiscountType('none')
       setDiscountInput('')
+      setPaidInput('')
+      setChangeShown(null)
       setCartOpen(false)
       refreshOrderLists()
     } catch {
@@ -782,7 +796,7 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
                               .filter((i) => i.status !== 'cancelled')
                               .map((i) => ({
                                 name: i.product_name, size: i.size, qty: i.quantity,
-                                price: i.unit_price, toppings: (i.toppings ?? []) as ToppingPick[],
+                                price: i.unit_price, toppings: (i.toppings ?? []) as ToppingPick[], note: i.note,
                               })),
                             subtotal: o.order_items.filter((i) => i.status !== 'cancelled').reduce((s, i) => s + i.unit_price * i.quantity, 0),
                             discountAmount: o.discount_amount ?? 0,
@@ -999,14 +1013,37 @@ export default function PosScreen({ cashierName, onPrintReceipt }: {
               ))}
             </div>
 
-            <div className="mb-5 flex gap-2">
-              <input
-                placeholder={t('customerPaid')}
-                className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm tabular-nums outline-none transition-all focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
-              />
-              <button className="rounded-xl bg-stone-100 px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-stone-200">
-                {t('calcChange')}
-              </button>
+            <div className="mb-5">
+              <div className="flex gap-2">
+                <input
+                  inputMode="numeric"
+                  value={paidInput}
+                  onChange={(e) => {
+                    setPaidInput(e.target.value.replace(/[^0-9]/g, ''))
+                    setChangeShown(null)
+                  }}
+                  placeholder={t('customerPaidPlaceholder')}
+                  className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm tabular-nums outline-none transition-all focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
+                />
+                <button
+                  onClick={() => setChangeShown(changeDue ?? -1)}
+                  disabled={paidNum <= 0}
+                  className="shrink-0 rounded-xl bg-stone-100 px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-stone-200 disabled:opacity-50"
+                >
+                  {t('calcChange')}
+                </button>
+              </div>
+              {changeShown !== null && (
+                <p className={`mt-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold ${
+                  changeShown < 0
+                    ? 'bg-red-50 text-danger'
+                    : 'bg-emerald-50 text-ready'
+                }`}>
+                  {changeShown < 0
+                    ? `${t('notEnough')}: ${formatMoney(-changeShown, lang)}`
+                    : `${t('changeDue')}: ${formatMoney(changeShown, lang)}`}
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2.5">
